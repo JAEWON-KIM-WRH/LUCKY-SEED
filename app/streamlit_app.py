@@ -241,21 +241,24 @@ with tab1:
 
     with col_left:
         st.subheader("📝 오늘의 미션 입력")
-        user_mission = st.text_input(
-            "미션을 입력하거나 아래에서 선택하세요",
-            placeholder="예: 오늘 30분 달리기, 명상 5분 하기 ...",
-            key="mission_input",
-        )
 
-        # 예시 미션 퀵 버튼
+        # 퀵 버튼: text_input 위젯 렌더링 전에 먼저 session_state 값 설정
         st.caption("✨ 빠른 선택")
         quick_cols = st.columns(5)
         quick_labels = list(LABEL_EMOJIS.keys())
         for i, (qcol, cat) in enumerate(zip(quick_cols, quick_labels)):
             with qcol:
                 if st.button(f"{LABEL_EMOJIS[cat]}", key=f"quick_{i}", help=cat, use_container_width=True):
-                    user_mission = random.choice(DEFAULT_MISSIONS[cat])
-                    st.session_state["mission_input"] = user_mission
+                    st.session_state["mission_val"] = random.choice(DEFAULT_MISSIONS[cat])
+
+        # text_input: key 없이 value로만 제어 (key 충돌 방지)
+        user_mission = st.text_input(
+            "미션을 입력하거나 위에서 선택하세요",
+            placeholder="예: 오늘 30분 달리기, 명상 5분 하기 ...",
+            value=st.session_state.get("mission_val", ""),
+        )
+        # 직접 타이핑 시 mission_val 동기화
+        st.session_state["mission_val"] = user_mission
 
         st.markdown("---")
         spin_btn = st.button(
