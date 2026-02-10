@@ -1,0 +1,28 @@
+{
+  "ml_models": {
+    "LogisticRegression": {
+      "accuracy": 1.0,
+      "f1_weighted": 1.0,
+      "cv_mean": 1.0,
+      "cv_std": 0.0
+    },
+    "RandomForest": {
+      "accuracy": 0.9695652173913043,
+      "f1_weighted": 0.9694678513837357,
+      "cv_mean": 0.98,
+      "cv_std": 0.009
+    },
+    "LinearSVC": {
+      "accuracy": 1.0,
+      "f1_weighted": 1.0,
+      "cv_mean": 1.0,
+      "cv_std": 0.0
+    }
+  },
+  "dl_model": {
+    "BiLSTMAttention": {
+      "accuracy": 0.931,
+      "f1_weighted": 0.929
+    }
+  }
+}
