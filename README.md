@@ -230,4 +230,4 @@ MIT License
 
 ## 👤 제작자
 
-재원 김 (TONY LAMA)
+Lucky-Seed 프로젝트 — AI 기반 갓생 자기계발 플랫폼
