@@ -293,7 +293,8 @@ st.markdown("""
 
 # ── session_state 초기화 ────────────────────────────────────────────────────
 for k, v in [("gacha_step", 1), ("gacha_mission", ""), ("gacha_category", ""),
-             ("gacha_result", None), ("gacha_history", [])]:
+             ("gacha_result", None), ("gacha_history", []),
+             ("preview_mission", ""), ("preview_cat", "")]:
     if k not in st.session_state:
         st.session_state[k] = v
 
@@ -329,48 +330,94 @@ with tab1:
     """, unsafe_allow_html=True)
 
     # ════════════════════════════════════════════════
-    # STEP 1 — 미션 선택
+    # STEP 1 — 랜덤 미션 뽑기
     # ════════════════════════════════════════════════
     if st.session_state["gacha_step"] == 1:
-        st.markdown("### 📋 오늘의 미션을 선택하세요")
 
-        # 카테고리별 미션 카드
-        for cat, missions in DEFAULT_MISSIONS.items():
-            emoji = LABEL_EMOJIS[cat]
-            color = LABEL_COLORS[cat]
-            st.markdown(
-                f'<div style="font-size:1rem;font-weight:700;color:{color};'
-                f'margin:14px 0 6px;">{emoji} {cat}</div>',
-                unsafe_allow_html=True,
-            )
-            btn_cols = st.columns(len(missions))
-            for col, mission in zip(btn_cols, missions):
-                with col:
-                    if st.button(mission, key=f"m_{cat}_{mission}", use_container_width=True):
-                        st.session_state["gacha_mission"]   = mission
-                        st.session_state["gacha_category"]  = cat
-                        st.session_state["gacha_step"]      = 2
-                        st.session_state["gacha_result"]    = None
-                        st.rerun()
+        # 뽑힌 미션 미리보기 (있으면 표시)
+        previewed = st.session_state.get("preview_mission", "")
+        previewed_cat = st.session_state.get("preview_cat", "")
 
-        st.markdown("---")
-        st.caption("또는 직접 입력하세요")
-        custom = st.text_input("나만의 미션", placeholder="예: 오늘 독서 20분 하기",
-                               key="custom_mission_input")
-        if st.button("이 미션으로 시작하기 →", disabled=not custom.strip(),
-                     type="primary", use_container_width=True, key="custom_start"):
-            # ML로 카테고리 추론
-            ml_model = load_ml_model()
-            if ml_model is not None:
-                pred = ml_model.predict([custom.strip()])[0]
-                cat  = LABEL_NAMES[pred]
-            else:
-                cat = random.choice(LABEL_NAMES)
-            st.session_state["gacha_mission"]  = custom.strip()
-            st.session_state["gacha_category"] = cat
-            st.session_state["gacha_step"]     = 2
-            st.session_state["gacha_result"]   = None
-            st.rerun()
+        st.markdown("""
+        <div style="text-align:center; padding: 10px 0 4px;">
+          <div style="font-size:1.1rem; color:#aaa; margin-bottom:18px;">
+            버튼을 눌러 오늘의 미션을 랜덤으로 뽑아보세요!
+          </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+        # 미션 카드 미리보기 영역
+        if previewed:
+            color = LABEL_COLORS[previewed_cat]
+            emoji = LABEL_EMOJIS[previewed_cat]
+            st.markdown(f"""
+            <div style="
+              background: linear-gradient(135deg, rgba(102,126,234,0.12), rgba(118,75,162,0.12));
+              border: 2px solid {color}55;
+              border-radius: 20px; padding: 30px 24px;
+              text-align: center; margin: 0 auto 20px; max-width: 480px;
+              box-shadow: 0 0 24px {color}33;
+            ">
+              <div style="font-size:3.2rem; margin-bottom:10px;">{emoji}</div>
+              <div style="font-size:1.35rem; font-weight:700; color:#ecf0f1; margin-bottom:8px;">
+                {previewed}
+              </div>
+              <div style="display:inline-block; padding:4px 14px; border-radius:20px;
+                background:{color}33; color:{color}; font-size:0.85rem; font-weight:600;">
+                {previewed_cat}
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="
+              background: rgba(255,255,255,0.03);
+              border: 2px dashed rgba(255,255,255,0.12);
+              border-radius: 20px; padding: 40px 24px;
+              text-align: center; margin: 0 auto 20px; max-width: 480px;
+            ">
+              <div style="font-size:3rem; margin-bottom:10px; opacity:0.3;">🎲</div>
+              <div style="color:#555; font-size:1rem;">미션이 여기에 나타납니다</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # 버튼 영역
+        all_missions = [(m, cat) for cat, ms in DEFAULT_MISSIONS.items() for m in ms]
+
+        c1, c2 = st.columns([3, 1])
+        with c1:
+            if st.button("🎲 랜덤 미션 뽑기!", type="primary",
+                         use_container_width=True, key="random_mission_btn"):
+                picked, picked_cat = random.choice(all_missions)
+                st.session_state["preview_mission"] = picked
+                st.session_state["preview_cat"]     = picked_cat
+                st.rerun()
+        with c2:
+            if st.button("✅ 이걸로!", use_container_width=True,
+                         disabled=not previewed, key="confirm_mission_btn"):
+                st.session_state["gacha_mission"]  = previewed
+                st.session_state["gacha_category"] = previewed_cat
+                st.session_state["gacha_step"]     = 2
+                st.session_state["gacha_result"]   = None
+                st.rerun()
+
+        # 직접 입력
+        with st.expander("✏️ 직접 입력하기"):
+            custom = st.text_input("나만의 미션", placeholder="예: 오늘 독서 20분 하기",
+                                   key="custom_mission_input")
+            if st.button("이 미션으로 시작하기 →", disabled=not custom.strip(),
+                         type="primary", use_container_width=True, key="custom_start"):
+                ml_model = load_ml_model()
+                if ml_model is not None:
+                    pred = ml_model.predict([custom.strip()])[0]
+                    cat  = LABEL_NAMES[pred]
+                else:
+                    cat = random.choice(LABEL_NAMES)
+                st.session_state["gacha_mission"]  = custom.strip()
+                st.session_state["gacha_category"] = cat
+                st.session_state["gacha_step"]     = 2
+                st.session_state["gacha_result"]   = None
+                st.rerun()
 
     # ════════════════════════════════════════════════
     # STEP 2 — 미션 수행 & 클리어
@@ -417,15 +464,65 @@ with tab1:
         # ── 가챠 뽑기 전 ──────────────────────────────
         if st.session_state["gacha_result"] is None:
             st.markdown("### 🎉 미션 클리어 축하해요!")
+            color = LABEL_COLORS[category]
             st.markdown(f"""
             <div class="mission-selected">
               <div class="cat-emoji">{emoji}</div>
               <div class="mission-title">✅ {mission}</div>
-              <div class="cat-name">클리어 완료!</div>
+              <div class="cat-name" style="color:{color};">클리어 완료!</div>
             </div>
             """, unsafe_allow_html=True)
 
-            st.markdown("#### 보상 카드를 뽑아보세요!")
+            # ── 카드 희귀도 쇼케이스 ─────────────────────────
+            GRADE_SHOWCASE = {
+                "Common":    {"color":"#95a5a6","glow":"rgba(149,165,166,0.3)","label":"커먼","ko":"기본"},
+                "Uncommon":  {"color":"#27ae60","glow":"rgba(39,174,96,0.4)","label":"언커먼","ko":"성장"},
+                "Rare":      {"color":"#2980b9","glow":"rgba(41,128,185,0.5)","label":"레어","ko":"도약"},
+                "Epic":      {"color":"#8e44ad","glow":"rgba(142,68,173,0.6)","label":"에픽","ko":"전진"},
+                "Legendary": {"color":"#f39c12","glow":"rgba(243,156,18,0.7)","label":"레전더리","ko":"전설"},
+            }
+            cards_html = ""
+            for gname, info in GRADE_SHOWCASE.items():
+                pct  = GRADE_WEIGHTS[gname]
+                gemoji = GRADE_EMOJIS[gname]
+                is_legendary = gname == "Legendary"
+                anim = "animation:glow 1.5s ease-in-out infinite alternate;" if is_legendary else ""
+                cards_html += f"""
+                <div style="
+                  flex:1; min-width:0;
+                  background:linear-gradient(160deg,#1a1a2e,#0f1923);
+                  border:2px solid {info['color']}88;
+                  border-radius:16px; padding:16px 8px 12px;
+                  text-align:center;
+                  box-shadow: 0 0 18px {info['glow']};
+                  {anim}
+                ">
+                  <div style="font-size:1.8rem; margin-bottom:6px;">{gemoji}</div>
+                  <div style="
+                    font-size:0.7rem; font-weight:800; letter-spacing:1px;
+                    color:{info['color']}; margin-bottom:4px; text-transform:uppercase;
+                  ">{info['label']}</div>
+                  <div style="font-size:0.65rem; color:#888; margin-bottom:8px;">{info['ko']}</div>
+                  <div style="
+                    background:{info['color']}22; border-radius:20px;
+                    padding:4px 0; font-size:0.9rem; font-weight:800;
+                    color:{info['color']};
+                  ">{pct}%</div>
+                </div>"""
+
+            st.markdown(f"""
+            <div style="margin:24px 0 8px;">
+              <div style="text-align:center;font-size:0.8rem;color:#666;
+                          font-weight:600;letter-spacing:2px;margin-bottom:12px;">
+                ✦ 카드 등급 & 확률 ✦
+              </div>
+              <div style="display:flex;gap:8px;align-items:stretch;">
+                {cards_html}
+              </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
             if st.button("🎰 가챠 뽑기!", type="primary",
                          use_container_width=True, key="gacha_btn"):
                 with st.spinner("✨ 카드 소환 중..."):
@@ -480,41 +577,8 @@ with tab1:
                     st.session_state["gacha_step"]    = 1
                     st.session_state["gacha_mission"] = ""
                     st.session_state["gacha_result"]  = None
+                    st.session_state["preview_mission"] = ""
                     st.rerun()
-
-        # ── 희귀도 안내표 (항상 노출) ─────────────────────────────
-        GRADE_COLORS = {
-            "Common":    ("#95a5a6", "#95a5a6", "white"),
-            "Uncommon":  ("#27ae60", "#27ae60", "white"),
-            "Rare":      ("#2980b9", "#2980b9", "white"),
-            "Epic":      ("#8e44ad", "#8e44ad", "white"),
-            "Legendary": ("#f39c12", "linear-gradient(90deg,#f39c12,#e74c3c)", "white"),
-        }
-        rows_html = ""
-        for grade_name, pct in GRADE_WEIGHTS.items():
-            bg, bar_bg, fc = GRADE_COLORS[grade_name]
-            bar_w = pct * 1.4  # max ~84px for 60%
-            rows_html += f"""
-            <div class="rarity-row">
-              <span class="rarity-badge"
-                style="background:{bg};color:{fc};">
-                {GRADE_EMOJIS[grade_name]} {grade_name}
-              </span>
-              <div class="rarity-bar-bg">
-                <div class="rarity-bar-fill"
-                  style="width:{bar_w}%;background:{bar_bg};"></div>
-              </div>
-              <span class="rarity-pct">{pct}%</span>
-            </div>"""
-
-        st.markdown(f"""
-        <div class="rarity-table">
-          <div style="font-size:0.85rem;font-weight:700;color:#aaa;margin-bottom:10px;">
-            📊 카드 희귀도 확률
-          </div>
-          {rows_html}
-        </div>
-        """, unsafe_allow_html=True)
 
         # ── 뽑기 기록 ──────────────────────────────────
         if st.session_state["gacha_history"]:
