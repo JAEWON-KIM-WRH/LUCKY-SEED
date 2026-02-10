@@ -426,20 +426,16 @@ with tab1:
         mission  = st.session_state["gacha_mission"]
         category = st.session_state["gacha_category"]
         emoji    = LABEL_EMOJIS[category]
-        color    = LABEL_COLORS[category]
 
         st.markdown("### 🏃 지금 이 미션을 수행하세요!")
 
-        st.markdown(f"""
-        <div class="mission-selected">
-          <div class="cat-emoji">{emoji}</div>
-          <div class="mission-title">{mission}</div>
-          <div class="cat-name" style="color:{color};">{category}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # 미션 표시 — 네이티브 컴포넌트로
+        st.markdown(f"## {emoji}")
+        st.markdown(f"## {mission}")
+        st.caption(f"카테고리: {category}")
 
-        st.markdown("")
-        st.info("✅ 미션을 완료했다면 아래 버튼을 눌러주세요!")
+        st.markdown("---")
+        st.info("미션을 완료했다면 아래 버튼을 눌러주세요!")
 
         c1, c2 = st.columns([2, 1])
         with c1:
@@ -464,63 +460,47 @@ with tab1:
         # ── 가챠 뽑기 전 ──────────────────────────────
         if st.session_state["gacha_result"] is None:
             st.markdown("### 🎉 미션 클리어 축하해요!")
-            color = LABEL_COLORS[category]
-            st.markdown(f"""
-            <div class="mission-selected">
-              <div class="cat-emoji">{emoji}</div>
-              <div class="mission-title">✅ {mission}</div>
-              <div class="cat-name" style="color:{color};">클리어 완료!</div>
-            </div>
-            """, unsafe_allow_html=True)
+
+            # 미션 표시 — 네이티브 컴포넌트
+            st.success(f"{emoji}  **{mission}**  — 클리어 완료!")
 
             # ── 카드 희귀도 쇼케이스 ─────────────────────────
-            GRADE_SHOWCASE = {
-                "Common":    {"color":"#95a5a6","glow":"rgba(149,165,166,0.3)","label":"커먼","ko":"기본"},
-                "Uncommon":  {"color":"#27ae60","glow":"rgba(39,174,96,0.4)","label":"언커먼","ko":"성장"},
-                "Rare":      {"color":"#2980b9","glow":"rgba(41,128,185,0.5)","label":"레어","ko":"도약"},
-                "Epic":      {"color":"#8e44ad","glow":"rgba(142,68,173,0.6)","label":"에픽","ko":"전진"},
-                "Legendary": {"color":"#f39c12","glow":"rgba(243,156,18,0.7)","label":"레전더리","ko":"전설"},
-            }
-            cards_html = ""
-            for gname, info in GRADE_SHOWCASE.items():
-                pct  = GRADE_WEIGHTS[gname]
-                gemoji = GRADE_EMOJIS[gname]
-                is_legendary = gname == "Legendary"
-                anim = "animation:glow 1.5s ease-in-out infinite alternate;" if is_legendary else ""
-                cards_html += f"""
-                <div style="
-                  flex:1; min-width:0;
-                  background:linear-gradient(160deg,#1a1a2e,#0f1923);
-                  border:2px solid {info['color']}88;
-                  border-radius:16px; padding:16px 8px 12px;
-                  text-align:center;
-                  box-shadow: 0 0 18px {info['glow']};
-                  {anim}
-                ">
-                  <div style="font-size:1.8rem; margin-bottom:6px;">{gemoji}</div>
-                  <div style="
-                    font-size:0.7rem; font-weight:800; letter-spacing:1px;
-                    color:{info['color']}; margin-bottom:4px; text-transform:uppercase;
-                  ">{info['label']}</div>
-                  <div style="font-size:0.65rem; color:#888; margin-bottom:8px;">{info['ko']}</div>
-                  <div style="
-                    background:{info['color']}22; border-radius:20px;
-                    padding:4px 0; font-size:0.9rem; font-weight:800;
-                    color:{info['color']};
-                  ">{pct}%</div>
-                </div>"""
+            st.markdown("#### 🃏 어떤 카드가 나올까요?")
 
-            st.markdown(f"""
-            <div style="margin:24px 0 8px;">
-              <div style="text-align:center;font-size:0.8rem;color:#666;
-                          font-weight:600;letter-spacing:2px;margin-bottom:12px;">
-                ✦ 카드 등급 & 확률 ✦
-              </div>
-              <div style="display:flex;gap:8px;align-items:stretch;">
-                {cards_html}
-              </div>
-            </div>
-            """, unsafe_allow_html=True)
+            GRADE_SHOWCASE = {
+                "Common":    {"color":"#95a5a6","bg":"#2c3e50","label":"커먼","ko":"기본","pct_bar":60},
+                "Uncommon":  {"color":"#2ecc71","bg":"#1a3a2a","label":"언커먼","ko":"성장","pct_bar":25},
+                "Rare":      {"color":"#3498db","bg":"#1a2a3a","label":"레어","ko":"도약","pct_bar":10},
+                "Epic":      {"color":"#a855f7","bg":"#2a1a3a","label":"에픽","ko":"전진","pct_bar":4},
+                "Legendary": {"color":"#f59e0b","bg":"#3a2a00","label":"레전더리","ko":"전설","pct_bar":1},
+            }
+
+            cols = st.columns(5)
+            for col, (gname, info) in zip(cols, GRADE_SHOWCASE.items()):
+                pct    = GRADE_WEIGHTS[gname]
+                gemoji = GRADE_EMOJIS[gname]
+                with col:
+                    st.markdown(
+                        f"""<div style="
+                          background:{info['bg']};
+                          border:2px solid {info['color']};
+                          border-radius:14px;
+                          padding:14px 6px 12px;
+                          text-align:center;
+                        ">
+                          <div style="font-size:1.6rem;">{gemoji}</div>
+                          <div style="font-size:0.7rem;font-weight:800;
+                            color:{info['color']};letter-spacing:0.5px;
+                            margin:6px 0 2px;">{info['label']}</div>
+                          <div style="font-size:0.62rem;color:#aaa;
+                            margin-bottom:8px;">{info['ko']}</div>
+                          <div style="background:{info['color']};
+                            border-radius:20px;padding:3px 0;
+                            font-size:0.85rem;font-weight:900;
+                            color:#fff;">{pct}%</div>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
 
             st.markdown("<br>", unsafe_allow_html=True)
             if st.button("🎰 가챠 뽑기!", type="primary",
